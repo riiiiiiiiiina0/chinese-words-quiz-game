@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chinese Words Quiz Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <style>
+    .sticker {
+      user-select: none;
+      cursor: move;
+      position: absolute;
+      transition: transform 0.1s ease;
+    }
+
+    .sticker:hover {
+      transform: scale(1.05);
+      z-index: 1000;
+    }
+
+    .sticker.dragging {
+      z-index: 1001;
+      transform: scale(1.1);
+    }
+
+    .game-area {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .input-section {
+      position: relative;
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<body class="bg-base-200 min-h-screen">
+  <div class="container mx-auto p-4">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-2">Chinese Words Quiz</h1>
+      <p class="text-base-content/70">Enter Chinese words separated by spaces, then drag them around!</p>
+    </div>
+
+    <!-- Input Section -->
+    <div class="input-section flex justify-center mb-8">
+      <div class="card bg-base-100 shadow-xl w-[90%] max-w-[1000px]">
+        <div class="card-body">
+          <div class="flex gap-2 items-center">
+            <input type="text" id="wordInput" placeholder="Enter Chinese words (separated by spaces)"
+              class="input input-bordered w-full text-lg" value="" />
+            <button id="createStickers" class="btn btn-primary">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Area -->
+    <div id="gameArea" class="game-area bg-base-100 rounded-lg shadow-lg mx-auto"
+      style="height: 500px; width: 90%; max-width: 1000px;">
+      <!-- Stickers will be dynamically added here -->
+    </div>
+  </div>
+
+  <script>
+    class ChineseWordGame {
+      constructor() {
+        this.gameArea = document.getElementById('gameArea');
+        this.wordInput = document.getElementById('wordInput');
+        this.createButton = document.getElementById('createStickers');
+        this.stickers = [];
+        this.draggedSticker = null;
+        this.offset = { x: 0, y: 0 };
+
+        // Rainbow colors array
+        this.rainbowColors = [
+          'bg-red-500 text-white',      // Red
+          'bg-orange-500 text-white',   // Orange
+          'bg-yellow-500 text-black',   // Yellow
+          'bg-green-500 text-black',    // Green
+          'bg-blue-500 text-white',     // Blue
+          'bg-indigo-500 text-white',   // Indigo
+          'bg-purple-500 text-white'    // Violet
+        ];
+
+        this.init();
+      }
+
+      init() {
+        this.createButton.addEventListener('click', () => this.createStickers());
+        this.wordInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            this.createStickers();
+          }
+        });
+
+        // Add sample text for demonstration
+        this.wordInput.value = '爸爸 吃了 一大口 番薯';
+      }
+
+      createStickers() {
+        const words = this.wordInput.value.trim().split(/\s+/).filter(word => word.length > 0);
+
+        if (words.length === 0) {
+          alert('Please enter some Chinese words!');
+          return;
+        }
+
+        // Clear existing stickers
+        this.clearStickers();
+
+        // Create new stickers
+        words.forEach((word, index) => {
+          this.createSticker(word, index);
+        });
+      }
+
+      createSticker(word, index) {
+        const sticker = document.createElement('div');
+
+        // Randomly select a rainbow color
+        const randomColor = this.rainbowColors[Math.floor(Math.random() * this.rainbowColors.length)];
+
+        sticker.className = `sticker card ${randomColor} shadow-lg`;
+        sticker.innerHTML = `
+                    <div class="card-body py-6 px-8">
+                        <div class="text-4xl font-bold text-center">${word}</div>
+                    </div>
+                `;
+
+        // Random position within game area
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const maxX = gameAreaRect.width - 150; // Account for larger sticker width
+        const maxY = gameAreaRect.height - 120;  // Account for larger sticker height
+
+        const x = Math.random() * maxX;
+        const y = Math.random() * maxY;
+
+        // Random slight tilt (-15 to 15 degrees)
+        const rotation = (Math.random() - 0.5) * 30;
+
+        sticker.style.left = `${x}px`;
+        sticker.style.top = `${y}px`;
+        sticker.style.transform = `rotate(${rotation}deg)`;
+
+        // Add drag functionality
+        this.addDragListeners(sticker);
+
+        this.gameArea.appendChild(sticker);
+        this.stickers.push(sticker);
+      }
+
+      addDragListeners(sticker) {
+        // Mouse events
+        sticker.addEventListener('mousedown', (e) => this.startDrag(e, sticker));
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', () => this.stopDrag());
+
+        // Touch events for mobile
+        sticker.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          this.startDrag(touch, sticker);
+        });
+
+        document.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          this.drag(touch);
+        });
+
+        document.addEventListener('touchend', () => this.stopDrag());
+      }
+
+      startDrag(e, sticker) {
+        this.draggedSticker = sticker;
+        sticker.classList.add('dragging');
+
+        const rect = sticker.getBoundingClientRect();
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+
+        this.offset.x = e.clientX - rect.left;
+        this.offset.y = e.clientY - rect.top;
+
+        // Bring to front
+        sticker.style.zIndex = '1001';
+      }
+
+      drag(e) {
+        if (!this.draggedSticker) return;
+
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+
+        let x = e.clientX - gameAreaRect.left - this.offset.x;
+        let y = e.clientY - gameAreaRect.top - this.offset.y;
+
+        // Constrain to game area
+        x = Math.max(0, Math.min(x, gameAreaRect.width - 150));
+        y = Math.max(0, Math.min(y, gameAreaRect.height - 120));
+
+        this.draggedSticker.style.left = `${x}px`;
+        this.draggedSticker.style.top = `${y}px`;
+      }
+
+      stopDrag() {
+        if (this.draggedSticker) {
+          this.draggedSticker.classList.remove('dragging');
+          this.draggedSticker.style.zIndex = '';
+          this.draggedSticker = null;
+        }
+      }
+
+      clearStickers() {
+        this.stickers.forEach(sticker => {
+          sticker.remove();
+        });
+        this.stickers = [];
+      }
+    }
+
+    // Initialize the game when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      new ChineseWordGame();
+    });
+  </script>
+</body>
+
+</html>
