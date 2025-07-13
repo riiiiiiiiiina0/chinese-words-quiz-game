@@ -7,6 +7,7 @@
   <title>Chinese Words Quiz Game</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.26.0/dist/index.min.js"></script>
   <style>
     .sticker {
       user-select: none;
@@ -125,9 +126,13 @@
         // Randomly select a rainbow color
         const randomColor = this.rainbowColors[Math.floor(Math.random() * this.rainbowColors.length)];
 
+        // Generate pinyin for the word
+        const wordPinyin = window.pinyinPro.pinyin(word, { type: "array" }).join(' ');
+
         sticker.className = `sticker card ${randomColor} shadow-lg`;
         sticker.innerHTML = `
-                    <div class="card-body py-6 px-8">
+                    <div class="card-body py-4 px-6">
+                        <div class="text-lg font-medium text-center opacity-90">${wordPinyin}</div>
                         <div class="text-4xl font-bold text-center">${word}</div>
                     </div>
                 `;
@@ -135,7 +140,7 @@
         // Random position within game area
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         const maxX = gameAreaRect.width - 150; // Account for larger sticker width
-        const maxY = gameAreaRect.height - 120;  // Account for larger sticker height
+        const maxY = gameAreaRect.height - 140;  // Account for larger sticker height with pinyin
 
         const x = Math.random() * maxX;
         const y = Math.random() * maxY;
@@ -200,7 +205,7 @@
 
         // Constrain to game area
         x = Math.max(0, Math.min(x, gameAreaRect.width - 150));
-        y = Math.max(0, Math.min(y, gameAreaRect.height - 120));
+        y = Math.max(0, Math.min(y, gameAreaRect.height - 140));
 
         this.draggedSticker.style.left = `${x}px`;
         this.draggedSticker.style.top = `${y}px`;
