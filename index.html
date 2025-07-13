@@ -35,24 +35,57 @@
       position: relative;
       z-index: 10;
     }
+
+    /* Fullscreen responsive layout */
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0.5rem;
+    }
+
+    .header-section {
+      flex-shrink: 0;
+      padding: 1rem 0;
+    }
+
+    .input-section {
+      flex-shrink: 0;
+      padding: 0.5rem 0;
+    }
+
+    .game-area {
+      flex: 1;
+      width: 100%;
+      max-width: none;
+      min-height: 0;
+    }
   </style>
 </head>
 
-<body class="bg-base-200 min-h-screen">
-  <div class="container mx-auto p-4">
-    <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold mb-2">Chinese Words Quiz</h1>
-      <p class="text-base-content/70">Enter Chinese words separated by spaces, then drag them around!</p>
+<body class="bg-base-200">
+  <div class="container mx-auto">
+    <div class="header-section text-center">
+      <h1 class="text-2xl md:text-4xl font-bold mb-2">Chinese Words Quiz</h1>
+      <p class="text-sm md:text-base text-base-content/70">Enter Chinese words separated by spaces, then drag them
+        around!</p>
     </div>
 
     <!-- Input Section -->
-    <div class="input-section flex justify-center mb-8">
-      <div class="card bg-base-100 shadow-xl w-[90%] max-w-[1000px]">
-        <div class="card-body">
+    <div class="input-section flex justify-center">
+      <div class="card bg-base-100 shadow-xl w-full max-w-4xl">
+        <div class="card-body py-3 px-4">
           <div class="flex gap-2 items-center">
             <input type="text" id="wordInput" placeholder="Enter Chinese words (separated by spaces)"
-              class="input input-bordered w-full text-lg" value="" />
-            <button id="createStickers" class="btn btn-primary">
+              class="input input-bordered w-full text-sm md:text-lg" value="" />
+            <button id="createStickers" class="btn btn-primary btn-sm md:btn-md">
               OK
             </button>
           </div>
@@ -61,8 +94,7 @@
     </div>
 
     <!-- Game Area -->
-    <div id="gameArea" class="game-area bg-base-100 rounded-lg shadow-lg mx-auto"
-      style="height: 500px; width: 90%; max-width: 1000px;">
+    <div id="gameArea" class="game-area bg-base-100 rounded-lg shadow-lg mt-4">
       <!-- Stickers will be dynamically added here -->
     </div>
   </div>
@@ -99,6 +131,15 @@
           }
         });
 
+        // Add orientation change and resize listeners
+        window.addEventListener('orientationchange', () => {
+          setTimeout(() => this.rearrangeStickers(), 100);
+        });
+
+        window.addEventListener('resize', () => {
+          this.rearrangeStickers();
+        });
+
         // Add sample text for demonstration
         this.wordInput.value = '爸爸 吃了 一大口 番薯';
       }
@@ -131,16 +172,31 @@
 
         sticker.className = `sticker card ${randomColor} shadow-lg`;
         sticker.innerHTML = `
-                    <div class="card-body py-4 px-6">
-                        <div class="text-lg font-medium text-center opacity-90">${wordPinyin}</div>
-                        <div class="text-4xl font-bold text-center">${word}</div>
+                    <div class="card-body py-2 px-3 md:py-4 md:px-6">
+                        <div class="text-sm md:text-lg font-medium text-center opacity-90">${wordPinyin}</div>
+                        <div class="text-2xl md:text-4xl font-bold text-center">${word}</div>
                     </div>
                 `;
 
-        // Random position within game area
+        // Position sticker randomly
+        this.positionStickerRandomly(sticker);
+
+        // Add drag functionality
+        this.addDragListeners(sticker);
+
+        this.gameArea.appendChild(sticker);
+        this.stickers.push(sticker);
+      }
+
+      positionStickerRandomly(sticker) {
         const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const maxX = gameAreaRect.width - 150; // Account for larger sticker width
-        const maxY = gameAreaRect.height - 140;  // Account for larger sticker height with pinyin
+
+        // Get sticker dimensions (estimate based on content)
+        const stickerWidth = window.innerWidth < 768 ? 120 : 150;
+        const stickerHeight = window.innerWidth < 768 ? 100 : 140;
+
+        const maxX = Math.max(0, gameAreaRect.width - stickerWidth);
+        const maxY = Math.max(0, gameAreaRect.height - stickerHeight);
 
         const x = Math.random() * maxX;
         const y = Math.random() * maxY;
@@ -151,12 +207,17 @@
         sticker.style.left = `${x}px`;
         sticker.style.top = `${y}px`;
         sticker.style.transform = `rotate(${rotation}deg)`;
+      }
 
-        // Add drag functionality
-        this.addDragListeners(sticker);
+      rearrangeStickers() {
+        if (this.stickers.length === 0) return;
 
-        this.gameArea.appendChild(sticker);
-        this.stickers.push(sticker);
+        // Wait a bit for the layout to settle after orientation change
+        setTimeout(() => {
+          this.stickers.forEach(sticker => {
+            this.positionStickerRandomly(sticker);
+          });
+        }, 100);
       }
 
       addDragListeners(sticker) {
@@ -203,9 +264,13 @@
         let x = e.clientX - gameAreaRect.left - this.offset.x;
         let y = e.clientY - gameAreaRect.top - this.offset.y;
 
+        // Get dynamic sticker dimensions
+        const stickerWidth = window.innerWidth < 768 ? 120 : 150;
+        const stickerHeight = window.innerWidth < 768 ? 100 : 140;
+
         // Constrain to game area
-        x = Math.max(0, Math.min(x, gameAreaRect.width - 150));
-        y = Math.max(0, Math.min(y, gameAreaRect.height - 140));
+        x = Math.max(0, Math.min(x, gameAreaRect.width - stickerWidth));
+        y = Math.max(0, Math.min(y, gameAreaRect.height - stickerHeight));
 
         this.draggedSticker.style.left = `${x}px`;
         this.draggedSticker.style.top = `${y}px`;
