@@ -4,6 +4,10 @@ A delightfully interactive web app that turns Chinese words into colorful, dragg
 
 ![](./docs/screenshot.jpg)
 
+## 🎮 Live Demo
+
+**[Try it here!](https://riiiiiiiiiina0.github.io/chinese-words-quiz-game/)**
+
 ## ✨ Features
 
 - 🎨 **Rainbow Stickers**: Each word becomes a beautiful colored sticker
